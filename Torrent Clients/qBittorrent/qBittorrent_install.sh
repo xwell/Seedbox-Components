@@ -1,3 +1,5 @@
+#!/bin/bash
+
 ## List of qBittorrent Version that is supported
 declare -a qb_ver_list=("4.1.9" "4.1.9.1" "4.2.5" "4.3.9" "4.4.5" "4.5.5" "4.6.7" "5.0.3" "5.1.0beta1")
 #Generate the list of qBittorrent Version that is supported
@@ -189,6 +191,7 @@ install_qBittorrent_(){
 	qb_cache=$5
 	qb_port=$6
 	qb_incoming_port=$7
+	client_max_mem=$8
 
 	## Check if qBittorrent is running
 	if pgrep -i -f qbittorrent; then
@@ -249,7 +252,13 @@ ExecStop=/usr/bin/killall -w -s 9 /usr/bin/qbittorrent-nox
 Restart=on-failure
 TimeoutStopSec=20
 RestartSec=10
+EOF
 
+if [[ -n "$client_max_mem" && "$client_max_mem" -ne 0 ]]; then
+    echo "MemoryMax=$client_max_mem" >> /etc/systemd/system/qbittorrent-nox@.service
+fi
+
+cat << EOF >>/etc/systemd/system/qbittorrent-nox@.service
 [Install]
 WantedBy=multi-user.target
 EOF
