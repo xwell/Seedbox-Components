@@ -452,7 +452,7 @@ set_txqueuelen_() {
 }
 set_initial_congestion_window_() {
     iproute=$(ip -o -4 route show to default)
-    ip route change $iproute initcwnd 25 initrwnd 25
+    ip route change $iproute initcwnd 100 initrwnd 100
 }
 disable_tso_() {
 	interface=$(ip -o -4 route show to default | awk '{print $5}')
@@ -531,7 +531,7 @@ kernel_settings_() {
 	tcp_mem_pressure_cap=2097152 #8GB
 	tcp_mem_max_cap=4194304 #16GB
 
-	if [ -n $memory_size ]; then
+	if [ -n "$memory_size" ] && [ "$memory_size" -gt 0 ]; then
 		#memory_size in terms of 4K pages
 		memory_4k=$(( $memory_size / 4 ))
 		#Calculate the TCP memory values
