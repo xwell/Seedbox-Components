@@ -249,12 +249,12 @@ User=$username
 LimitNOFILE=infinity
 ExecStart=/usr/bin/qbittorrent-nox -d
 ExecStop=/usr/bin/killall -w -s 9 /usr/bin/qbittorrent-nox
-Restart=on-failure
+Restart=always
 TimeoutStopSec=20
 RestartSec=10
 EOF
 
-if [[ -n "$client_max_mem" && "$client_max_mem" -ne 0 ]]; then
+if [[ -n "$client_max_mem" && "$client_max_mem" != "0" ]]; then
     echo "MemoryMax=$client_max_mem" >> /etc/systemd/system/qbittorrent-nox@.service
 fi
 
