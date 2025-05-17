@@ -215,7 +215,7 @@ EOF
 	systemctl start autobrr@$username
 	# Clean up
 	rm autobrr*.tar.gz
-	
+
 	# Check if AutoBrr is running
 	if [ -z $(pgrep autobrr) ]; then
 		fail "AutoBrr failed to start"
@@ -350,13 +350,13 @@ install_autoremove-torrents_() {
 			su user -s /bin/sh -c "pipx ensurepath"
 		fi
 	fi
-	
+
 
     # qBittorrent
 	if test -f /usr/bin/qbittorrent-nox; then
 		touch /home/$username/.config.yml && chown $username:$username /home/$username/.config.yml
         cat << EOF >>/home/$username/.config.yml
-General-qb:          
+General-qb:
   client: qbittorrent
   host: http://127.0.0.1:$qb_port
   username: $username
@@ -495,8 +495,8 @@ set_disk_scheduler_() {
     do
 	    diskname=$(eval echo ${drive["$x"]})
 	    disktype=$(cat /sys/block/$diskname/queue/rotational)
-	    if [ "${disktype}" == 0 ]; then		
-		    echo kyber > /sys/block/$diskname/queue/scheduler
+	    if [ "${disktype}" == 0 ]; then
+		    echo none > /sys/block/$diskname/queue/scheduler
 	    else
 		    echo mq-deadline > /sys/block/$diskname/queue/scheduler
 	    fi
@@ -679,11 +679,11 @@ net.core.rmem_default = $rmem_default
 net.core.rmem_max = $rmem_max
 
 # Send socket buffer size
-net.core.wmem_default = $wmem_default 
+net.core.wmem_default = $wmem_default
 net.core.wmem_max = $wmem_max
 
 # Maximum ancillary buffer size allowed per socket
-# NOTE:Setting this value too high can lead to excessive kernel memory allocation for sockets, which might not be needed and could potentially waste system resources. 
+# NOTE:Setting this value too high can lead to excessive kernel memory allocation for sockets, which might not be needed and could potentially waste system resources.
 net.core.optmem_max = 4194304
 
 
@@ -756,7 +756,7 @@ net.ipv4.tcp_base_mss = 1460
 net.ipv4.tcp_min_snd_mss = 536
 
 
-# Enable selective acknowledgments 
+# Enable selective acknowledgments
 net.ipv4.tcp_sack = 1
 # Send SACK more frequently
 net.ipv4.tcp_comp_sack_delay_ns = 250000
