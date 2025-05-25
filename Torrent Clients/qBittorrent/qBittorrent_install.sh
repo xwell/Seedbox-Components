@@ -345,6 +345,7 @@ Accepted=true
 Cookies=@Invalid()
 
 [Preferences]
+General\Locale=zh
 Connection\PortRangeMin=$qb_incoming_port
 Downloads\DiskWriteCacheSize=$qb_cache
 Downloads\SavePath=/home/$username/qbittorrent/Downloads/
@@ -388,6 +389,46 @@ Accepted=true
 Cookies=@Invalid()
 
 [Preferences]
+WebUI\Password_PBKDF2="@ByteArray($PBKDF2password)"
+WebUI\Port=$qb_port
+WebUI\Username=$username
+EOF
+    rm qb_password_gen
+    elif [[ "${qb_ver}" =~ "5.0."|"5.1." ]]; then
+        wget  https://raw.githubusercontent.com/jerry048/Seedbox-Components/main/Torrent%20Clients/qBittorrent/$arch/qb_password_gen -O $HOME/qb_password_gen && chmod +x $HOME/qb_password_gen
+        #Check if the download is successful
+		if [ $? -ne 0 ]; then
+			warn "Failed to download qb_password_gen"
+			#Clean up
+			rm -r /home/$username/qbittorrent/Downloads
+			rm -r /home/$username/.config/qBittorrent
+			rm /usr/bin/qbittorrent-nox
+			rm /etc/systemd/system/qbittorrent-nox@.service
+			return 1
+		fi
+		PBKDF2password=$($HOME/qb_password_gen $password)
+        cat << EOF >/home/$username/.config/qBittorrent/qBittorrent.conf
+[Application]
+MemoryWorkingSetLimit=$qb_cache
+
+[BitTorrent]
+Session\AsyncIOThreadsCount=$aio
+Session\DefaultSavePath=/home/$username/qbittorrent/Downloads/
+Session\DiskCacheSize=$qb_cache
+Session\Port=$qb_incoming_port
+Session\QueueingSystemEnabled=false
+Session\SendBufferLowWatermark=$low_buffer
+Session\SendBufferWatermark=$buffer
+Session\SendBufferWatermarkFactor=$buffer_factor
+
+[LegalNotice]
+Accepted=true
+
+[Network]
+Cookies=@Invalid()
+
+[Preferences]
+General\Locale=zh_CN
 WebUI\Password_PBKDF2="@ByteArray($PBKDF2password)"
 WebUI\Port=$qb_port
 WebUI\Username=$username
