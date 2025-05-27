@@ -974,7 +974,8 @@ install_bbrx_() {
     cat << EOF > /etc/systemd/system/bbrinstall.service
 [Unit]
 Description=BBRinstall
-After=network.target
+After=network.target network-online.target
+Wants=network-online.target
 
 [Service]
 Type=oneshot
