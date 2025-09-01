@@ -248,7 +248,6 @@ Type=forking
 User=$username
 LimitNOFILE=infinity
 ExecStart=/usr/bin/qbittorrent-nox -d
-ExecStop=/usr/bin/killall -w -s 9 /usr/bin/qbittorrent-nox
 Restart=always
 TimeoutStopSec=20
 RestartSec=10
