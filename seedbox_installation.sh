@@ -215,6 +215,8 @@ ExecStart=/usr/bin/autobrr --config=/home/$username/.config/autobrr/
 [Install]
 WantedBy=multi-user.target
 EOF
+	# Reload systemd daemon to recognize new service
+	systemctl daemon-reload
 	# Enable and start AutoBrr
 	systemctl enable autobrr@$username
 	systemctl start autobrr@$username
@@ -399,6 +401,8 @@ ExecStart=/home/$username/.autoremove-torrents/autoremove-torrents.sh
 [Install]
 WantedBy=multi-user.target
 EOF
+	# Reload systemd daemon to recognize new service
+	systemctl daemon-reload
 	# Enable and start Autoremove-torrents
 	systemctl enable autoremove-torrents@$username
 	systemctl start autoremove-torrents@$username
@@ -1062,6 +1066,8 @@ RemainAfterExit=true
 [Install]
 WantedBy=multi-user.target
 EOF
+    # Reload systemd daemon to recognize new service
+    systemctl daemon-reload
     systemctl enable bbrinstall.service
 	return 0
 }
@@ -1129,6 +1135,8 @@ RemainAfterExit=true
 [Install]
 WantedBy=multi-user.target
 EOF
+    # Reload systemd daemon to recognize new service
+    systemctl daemon-reload
     systemctl enable bbrinstall.service
 	return 0
 }
@@ -1196,6 +1204,8 @@ RemainAfterExit=true
 [Install]
 WantedBy=multi-user.target
 EOF
+    # Reload systemd daemon to recognize new service
+    systemctl daemon-reload
     systemctl enable bbrinstall.service
 	return 0
 }
