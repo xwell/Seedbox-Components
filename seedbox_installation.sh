@@ -660,6 +660,33 @@ kernel_settings_() {
 		fail "Kernel settings not set"
 		return 1
 	fi
+	
+	# Check current system file limits to avoid reducing them
+	current_file_max=$(cat /proc/sys/fs/file-max 2>/dev/null || echo "0")
+	current_nr_open=$(cat /proc/sys/fs/nr_open 2>/dev/null || echo "0")
+	
+	# Calculate the target values: use the larger of current value or our minimum target
+	target_file_max=$current_file_max
+	target_nr_open=$current_nr_open
+	
+	if [ "$current_file_max" -lt 1048576 ]; then
+		target_file_max=1048576
+		echo "Setting fs.file-max to 1048576 (current: $current_file_max)"
+	else
+		echo "Using current fs.file-max value: $current_file_max (>= 1048576)"
+	fi
+	
+	if [ "$current_nr_open" -lt 1048576 ]; then
+		target_nr_open=1048576
+		echo "Setting fs.nr_open to 1048576 (current: $current_nr_open)"
+	else
+		echo "Using current fs.nr_open value: $current_nr_open (>= 1048576)"
+	fi
+	
+	# Always write the target values to sysctl.conf to ensure persistence across reboots
+	file_max_setting="fs.file-max = $target_file_max"
+	nr_open_setting="fs.nr_open = $target_nr_open"
+	
     cat << EOF >/etc/sysctl.conf
 ###/proc/sys/kernel/ Variables:
 ##https://www.kernel.org/doc/Documentation/admin-guide/sysctl/kernel.rst
@@ -687,10 +714,10 @@ kernel.sched_wakeup_granularity_ns = 15000000
 ##https://www.kernel.org/doc/Documentation/admin-guide/sysctl/fs.rst
 
 # Maximum number of file-handles that the Linux kernel will allocate
-fs.file-max = 1048576
+$file_max_setting
 
 # Maximum number of file-handles a process can allocate
-fs.nr_open = 1048576
+$nr_open_setting
 
 
 
