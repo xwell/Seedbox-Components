@@ -589,16 +589,16 @@ set_disk_scheduler_() {
 
 # File Open Limit
 set_file_open_limit_() {
-	# return if $username is not Set
+	local target_username=$username
+	# If username is not set, apply to all users
 	if [[ -z $username ]]; then
-		fail "Username not set"
-		return 1
+		target_username="*"
 	fi
     cat << EOF >>/etc/security/limits.conf
 ## Hard limit for max opened files
-$username        hard nofile 1048576
+$target_username        hard nofile 1048576
 ## Soft limit for max opened files
-$username        soft nofile 1048576
+$target_username        soft nofile 1048576
 EOF
 	return 0
 }
