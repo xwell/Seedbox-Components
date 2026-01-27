@@ -1116,6 +1116,7 @@ EOF
 
 # BBR
 install_bbrx_() {
+	local path=${1:-/root/BBRx.sh}
 	#Check if $OS is Set
 	if [[ -z $OS ]]; then
 		# Linux Distro Version check
@@ -1158,9 +1159,9 @@ install_bbrx_() {
 		fail "Unsupported OS"
 		return 1
 	fi
-	wget https://raw.githubusercontent.com/guowanghushifu/Seedbox-Components/main/BBR/BBRx/BBRx.sh -O /root/BBRx.sh && chmod +x /root/BBRx.sh
+	wget https://raw.githubusercontent.com/guowanghushifu/Seedbox-Components/main/BBR/BBRx/BBRx.sh -O "$path" && chmod +x "$path"
 	# Check if download fail
-	if [ ! -f /root/BBRx.sh ]; then
+	if [ ! -f "$path" ]; then
 		fail "BBR download failed"
 		return 1
 	fi
@@ -1173,7 +1174,7 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
-ExecStart=/root/BBRx.sh
+ExecStart=$path
 RemainAfterExit=true
 
 [Install]
@@ -1186,6 +1187,7 @@ EOF
 }
 
 install_bbry_() {
+	local path=${1:-/root/BBRy.sh}
 	#Check if $OS is Set
 	if [[ -z $OS ]]; then
 		# Linux Distro Version check
@@ -1228,9 +1230,9 @@ install_bbry_() {
 		fail "Unsupported OS"
 		return 1
 	fi
-	wget https://raw.githubusercontent.com/guowanghushifu/Seedbox-Components/main/BBR/BBRx/BBRy.sh && chmod +x BBRy.sh
+	wget https://raw.githubusercontent.com/guowanghushifu/Seedbox-Components/main/BBR/BBRx/BBRy.sh -O "$path" && chmod +x "$path"
 	# Check if download fail
-	if [ ! -f BBRy.sh ]; then
+	if [ ! -f "$path" ]; then
 		fail "BBRy download failed"
 		return 1
 	fi
@@ -1238,11 +1240,12 @@ install_bbry_() {
     cat << EOF > /etc/systemd/system/bbrinstall.service
 [Unit]
 Description=BBRinstall
-After=network.target
+After=network.target network-online.target
+Wants=network-online.target
 
 [Service]
 Type=oneshot
-ExecStart=/root/BBRy.sh
+ExecStart=$path
 RemainAfterExit=true
 
 [Install]
@@ -1255,6 +1258,7 @@ EOF
 }
 
 install_bbrz_() {
+	local path=${1:-/root/BBRz.sh}
 	#Check if $OS is Set
 	if [[ -z $OS ]]; then
 		# Linux Distro Version check
@@ -1297,9 +1301,9 @@ install_bbrz_() {
 		fail "Unsupported OS"
 		return 1
 	fi
-	wget https://raw.githubusercontent.com/guowanghushifu/Seedbox-Components/main/BBR/BBRx/BBRz.sh && chmod +x BBRz.sh
+	wget https://raw.githubusercontent.com/guowanghushifu/Seedbox-Components/main/BBR/BBRx/BBRz.sh -O "$path" && chmod +x "$path"
 	# Check if download fail
-	if [ ! -f BBRz.sh ]; then
+	if [ ! -f "$path" ]; then
 		fail "BBRz download failed"
 		return 1
 	fi
@@ -1307,11 +1311,12 @@ install_bbrz_() {
     cat << EOF > /etc/systemd/system/bbrinstall.service
 [Unit]
 Description=BBRinstall
-After=network.target
+After=network.target network-online.target
+Wants=network-online.target
 
 [Service]
 Type=oneshot
-ExecStart=/root/BBRz.sh
+ExecStart=$path
 RemainAfterExit=true
 
 [Install]
