@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ## List of qBittorrent Version that is supported
-declare -a qb_ver_list=("4.1.9" "4.1.9.1" "4.2.5" "4.3.9" "4.4.5" "4.5.5" "4.6.7" "5.0.3" "5.1.0beta1")
+declare -a qb_ver_list=("4.1.9" "4.1.9.1" "4.3.8" "4.3.9" "4.6.7" "5.0.3" "5.0.4")
 #Generate the list of qBittorrent Version that is supported
 unset qb_name_list i
 for i in "${qb_ver_list[@]}"
@@ -9,7 +9,7 @@ do
 	qb_name_list+=("qBittorrent-$i")
 done
 ## List of libtorrent Version that is supported
-declare -a lib_ver_list=("1_1_14" "v1.2.20" "v2.0.11")
+declare -a lib_ver_list=("1_1_14" "v1.2.14" "v1.2.19" "v1.2.20" "v2.0.11")
 #Generate the list of libtorrent Version that is supported
 unset lib_name_list i
 for i in "${lib_ver_list[@]}"
@@ -220,7 +220,7 @@ install_qBittorrent_(){
 		warn "Unsupported CPU architecture"
 		return 1
 	fi
-	wget https://raw.githubusercontent.com/jerry048/Seedbox-Components/main/Torrent%20Clients/qBittorrent/$arch/$qb_ver%20-%20$lib_ver/qbittorrent-nox -O $HOME/qbittorrent-nox && chmod +x $HOME/qbittorrent-nox
+	wget https://raw.githubusercontent.com/guowanghushifu/Seedbox-Components/main/Torrent%20Clients/qBittorrent/$arch/$qb_ver%20-%20$lib_ver/qbittorrent-nox -O $HOME/qbittorrent-nox && chmod +x $HOME/qbittorrent-nox
 	#Check if the download is successful
 	if [ $? -ne 0 ]; then
 		warn "Failed to download qBittorrent-nox executable"
@@ -244,12 +244,12 @@ Description=qBittorrent
 After=network.target
 
 [Service]
-Type=forking
+Type=exec
 User=$username
 LimitNOFILE=infinity
-ExecStart=/usr/bin/qbittorrent-nox -d
-Restart=always
-TimeoutStopSec=20
+ExecStart=/usr/bin/qbittorrent-nox
+Restart=on-failure
+TimeoutStopSec=10
 RestartSec=10
 EOF
 
@@ -318,7 +318,7 @@ WebUI\Port=$qb_port
 WebUI\Username=$username
 EOF
     elif [[ "${qb_ver}" =~ "4.2."|"4.3." ]]; then
-        wget  https://raw.githubusercontent.com/jerry048/Seedbox-Components/main/Torrent%20Clients/qBittorrent/$arch/qb_password_gen -O $HOME/qb_password_gen && chmod +x $HOME/qb_password_gen
+        wget  https://raw.githubusercontent.com/guowanghushifu/Seedbox-Components/main/Torrent%20Clients/qBittorrent/$arch/qb_password_gen -O $HOME/qb_password_gen && chmod +x $HOME/qb_password_gen
         #Check if the download is successful
 		if [ $? -ne 0 ]; then
 			warn "Failed to download qb_password_gen"
@@ -355,7 +355,7 @@ WebUI\Username=$username
 EOF
 	rm qb_password_gen
     elif [[ "${qb_ver}" =~ "4.4."|"4.5."|"4.6." ]]; then
-        wget  https://raw.githubusercontent.com/jerry048/Seedbox-Components/main/Torrent%20Clients/qBittorrent/$arch/qb_password_gen -O $HOME/qb_password_gen && chmod +x $HOME/qb_password_gen
+        wget  https://raw.githubusercontent.com/guowanghushifu/Seedbox-Components/main/Torrent%20Clients/qBittorrent/$arch/qb_password_gen -O $HOME/qb_password_gen && chmod +x $HOME/qb_password_gen
         #Check if the download is successful
 		if [ $? -ne 0 ]; then
 			warn "Failed to download qb_password_gen"
@@ -394,7 +394,7 @@ WebUI\Username=$username
 EOF
     rm qb_password_gen
     elif [[ "${qb_ver}" =~ "5.0."|"5.1." ]]; then
-        wget  https://raw.githubusercontent.com/jerry048/Seedbox-Components/main/Torrent%20Clients/qBittorrent/$arch/qb_password_gen -O $HOME/qb_password_gen && chmod +x $HOME/qb_password_gen
+        wget  https://raw.githubusercontent.com/guowanghushifu/Seedbox-Components/main/Torrent%20Clients/qBittorrent/$arch/qb_password_gen -O $HOME/qb_password_gen && chmod +x $HOME/qb_password_gen
         #Check if the download is successful
 		if [ $? -ne 0 ]; then
 			warn "Failed to download qb_password_gen"
