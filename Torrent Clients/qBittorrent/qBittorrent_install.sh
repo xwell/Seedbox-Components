@@ -222,7 +222,7 @@ install_qBittorrent_(){
 	fi
 	# Convert spaces in lib_ver to %20 to avoid wget download issues
 	safe_lib_ver="${lib_ver// /%20}"
-	wget "https://raw.githubusercontent.com/guowanghushifu/Seedbox-Components/main/Torrent%20Clients/qBittorrent/$arch/qBittorrent-$qb_ver%20-%20libtorrent-${safe_lib_ver}/qbittorrent-nox" -O $HOME/qbittorrent-nox && chmod +x $HOME/qbittorrent-nox
+	wget "https://raw.githubusercontent.com/guowanghushifu/Seedbox-Components/main/Torrent%20Clients/qBittorrent/$arch/$qb_ver%20-%20${safe_lib_ver}/qbittorrent-nox" -O $HOME/qbittorrent-nox && chmod +x $HOME/qbittorrent-nox
 	#Check if the download is successful
 	if [ $? -ne 0 ]; then
 		warn "Failed to download qBittorrent-nox executable"
