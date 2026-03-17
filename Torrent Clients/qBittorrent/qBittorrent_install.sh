@@ -9,7 +9,7 @@ do
 	qb_name_list+=("qBittorrent-$i")
 done
 ## List of libtorrent Version that is supported
-declare -a lib_ver_list=("1_1_14" "v1.2.14" "v1.2.19" "v1.2.20" "v2.0.11")
+declare -a lib_ver_list=("1_1_14" "v1.2.14" "v1.2.19" "v1.2.20" "v2.0.11" "v1.2.20 - x64_v3")
 #Generate the list of libtorrent Version that is supported
 unset lib_name_list i
 for i in "${lib_ver_list[@]}"
@@ -220,7 +220,9 @@ install_qBittorrent_(){
 		warn "Unsupported CPU architecture"
 		return 1
 	fi
-	wget https://raw.githubusercontent.com/guowanghushifu/Seedbox-Components/main/Torrent%20Clients/qBittorrent/$arch/$qb_ver%20-%20$lib_ver/qbittorrent-nox -O $HOME/qbittorrent-nox && chmod +x $HOME/qbittorrent-nox
+	# Convert spaces in lib_ver to %20 to avoid wget download issues
+	safe_lib_ver="${lib_ver// /%20}"
+	wget "https://raw.githubusercontent.com/guowanghushifu/Seedbox-Components/main/Torrent%20Clients/qBittorrent/$arch/qBittorrent-$qb_ver%20-%20libtorrent-${safe_lib_ver}/qbittorrent-nox" -O $HOME/qbittorrent-nox && chmod +x $HOME/qbittorrent-nox
 	#Check if the download is successful
 	if [ $? -ne 0 ]; then
 		warn "Failed to download qBittorrent-nox executable"
