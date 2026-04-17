@@ -1,21 +1,128 @@
 #!/bin/bash
 
-## List of qBittorrent Version that is supported
-declare -a qb_ver_list=("4.1.9" "4.1.9.1" "4.3.8" "4.3.9" "4.6.7" "5.0.3" "5.0.4")
-#Generate the list of qBittorrent Version that is supported
-unset qb_name_list i
-for i in "${qb_ver_list[@]}"
-do
-	qb_name_list+=("qBittorrent-$i")
-done
-## List of libtorrent Version that is supported
-declare -a lib_ver_list=("1_1_14" "v1.2.14" "v1.2.19" "v1.2.20" "v2.0.11" "v1.2.20 - x64_v3")
-#Generate the list of libtorrent Version that is supported
-unset lib_name_list i
-for i in "${lib_ver_list[@]}"
-do
-	lib_name_list+=("libtorrent-$i")
-done
+## All valid (qBittorrent, libtorrent) combinations and source repositories (tried in order)
+declare -A combo_sources=(
+	# qBittorrent 4.1.9
+	["qBittorrent-4.1.9:libtorrent-1_1_14"]="guowanghushifu jerry048"
+	# qBittorrent 4.1.9.1
+	["qBittorrent-4.1.9.1:libtorrent-1_1_14"]="guowanghushifu jerry048"
+	# qBittorrent 4.2.5
+	["qBittorrent-4.2.5:libtorrent-v1.2.19"]="guowanghushifu"
+	["qBittorrent-4.2.5:libtorrent-v1.2.20"]="jerry048"
+	# qBittorrent 4.3.8
+	["qBittorrent-4.3.8:libtorrent-v1.2.14"]="guowanghushifu"
+	# qBittorrent 4.3.9
+	["qBittorrent-4.3.9:libtorrent-v1.2.19"]="guowanghushifu"
+	["qBittorrent-4.3.9:libtorrent-v1.2.20"]="jerry048"
+	# qBittorrent 4.4.5
+	["qBittorrent-4.4.5:libtorrent-v1.2.19"]="guowanghushifu"
+	["qBittorrent-4.4.5:libtorrent-v1.2.20"]="jerry048"
+	["qBittorrent-4.4.5:libtorrent-v2.0.10"]="guowanghushifu"
+	["qBittorrent-4.4.5:libtorrent-v2.0.11"]="jerry048"
+	# qBittorrent 4.5.5
+	["qBittorrent-4.5.5:libtorrent-v1.2.19"]="guowanghushifu"
+	["qBittorrent-4.5.5:libtorrent-v1.2.20"]="jerry048"
+	["qBittorrent-4.5.5:libtorrent-v2.0.10"]="guowanghushifu"
+	["qBittorrent-4.5.5:libtorrent-v2.0.11"]="jerry048"
+	# qBittorrent 4.6.3
+	["qBittorrent-4.6.3:libtorrent-v1.2.19"]="guowanghushifu"
+	["qBittorrent-4.6.3:libtorrent-v2.0.10"]="guowanghushifu"
+	# qBittorrent 4.6.5
+	["qBittorrent-4.6.5:libtorrent-v1.2.19"]="guowanghushifu"
+	# qBittorrent 4.6.5.1
+	["qBittorrent-4.6.5.1:libtorrent-v1.2.19"]="guowanghushifu"
+	# qBittorrent 4.6.5.2
+	["qBittorrent-4.6.5.2:libtorrent-v1.2.19"]="guowanghushifu"
+	# qBittorrent 4.6.7
+	["qBittorrent-4.6.7:libtorrent-v1.2.19"]="guowanghushifu"
+	["qBittorrent-4.6.7:libtorrent-v1.2.20"]="jerry048"
+	["qBittorrent-4.6.7:libtorrent-v2.0.11"]="jerry048"
+	# qBittorrent 5.0.3
+	["qBittorrent-5.0.3:libtorrent-v1.2.20"]="guowanghushifu jerry048"
+	["qBittorrent-5.0.3:libtorrent-v2.0.11"]="guowanghushifu jerry048"
+	# qBittorrent 5.0.4
+	["qBittorrent-5.0.4:libtorrent-v1.2.20"]="guowanghushifu"
+	["qBittorrent-5.0.4:libtorrent-v1.2.20 - x64_v3"]="guowanghushifu"
+	["qBittorrent-5.0.4:libtorrent-v2.0.11"]="guowanghushifu"
+	# qBittorrent 5.1.0beta1
+	["qBittorrent-5.1.0beta1:libtorrent-v1.2.20"]="jerry048"
+	["qBittorrent-5.1.0beta1:libtorrent-v2.0.11"]="jerry048"
+)
+
+## Generate sorted unique qBittorrent version list from combo_sources
+declare -a qb_name_list
+_build_qb_list() {
+	local -A seen
+	for key in "${!combo_sources[@]}"; do
+		seen["${key%%:*}"]=1
+	done
+	mapfile -t qb_name_list < <(printf '%s\n' "${!seen[@]}" | sort -V)
+}
+_build_qb_list
+
+## Get available libtorrent versions for a given qBittorrent version (filtered by arch)
+_get_lib_for_qb() {
+	local target_qb="$1"
+	local cur_arch
+	cur_arch="$(uname -m)"
+	local libs=()
+	for key in "${!combo_sources[@]}"; do
+		local qb="${key%%:*}"
+		local lib="${key##*:}"
+		if [[ "$qb" == "$target_qb" ]]; then
+			if [[ "$lib" == *"x64_v3"* ]] && [[ "$cur_arch" != "x86_64" ]]; then
+				continue
+			fi
+			libs+=("$lib")
+		fi
+	done
+	printf '%s\n' "${libs[@]}" | sort -V
+}
+
+## Download helper with multi-repo fallback
+_download_with_fallback() {
+	local url_path="$1"
+	local output="$2"
+	local repos="$3"
+	for repo in $repos; do
+		local url="https://raw.githubusercontent.com/${repo}/Seedbox-Components/main/Torrent%20Clients/qBittorrent/${url_path}"
+		echo "Trying to download from ${repo}..."
+		if wget "$url" -O "$output"; then
+			chmod +x "$output"
+			echo "Downloaded successfully from ${repo}"
+			return 0
+		fi
+		echo "Not available from ${repo}, trying next source..."
+	done
+	return 1
+}
+
+## Display all supported qBittorrent + libtorrent combinations
+show_supported_versions() {
+	local cur_arch
+	cur_arch="$(uname -m)"
+	echo ""
+	echo "  Supported qBittorrent + libtorrent combinations:"
+	echo "  ================================================="
+	for qb in "${qb_name_list[@]}"; do
+		local libs
+		mapfile -t libs < <(_get_lib_for_qb "$qb")
+		local lib_str=""
+		for lib in "${libs[@]}"; do
+			local combo_key="${qb}:${lib}"
+			local repos="${combo_sources[$combo_key]}"
+			local src
+			src=$(echo "$repos" | awk '{print $1}')
+			if [[ -n "$lib_str" ]]; then
+				lib_str+=", "
+			fi
+			lib_str+="${lib} [${src}]"
+		done
+		printf "  %-30s => %s\n" "$qb" "$lib_str"
+	done
+	echo ""
+}
+
 qb_ver_choose(){
 	need_input "Please choose your qBittorrent Version:"
 	select opt in "${qb_name_list[@]}"
@@ -30,14 +137,17 @@ qb_ver_choose(){
 }
 
 lib_ver_choose(){
-	## Check if qb_ver is empty
 	if [[ -z "$qb_ver" ]]; then
 		qb_ver_choose
 	fi
-
-	## Allow users to determine which version of libtorrent to go with the qBittorrent
-	need_input "Please choose your libtorrent version:"
-	select opt in "${lib_name_list[@]}"
+	local available_libs
+	mapfile -t available_libs < <(_get_lib_for_qb "$qb_ver")
+	if [[ ${#available_libs[@]} -eq 0 ]]; then
+		warn "No libtorrent versions available for $qb_ver"
+		return 1
+	fi
+	need_input "Please choose your libtorrent version for $qb_ver:"
+	select opt in "${available_libs[@]}"
 	do
 		case $opt in
 		libtorrent*)
@@ -49,136 +159,26 @@ lib_ver_choose(){
 }
 
 lib_ver_check(){
-	## Check if lib_ver is empty
 	if [[ -z "$lib_ver" ]]; then
 		lib_ver_choose
+		return
 	fi
-	## Check if the libtorrent version is supported
-	if [[ ! " ${lib_name_list[@]} " =~ " ${lib_ver} " ]]; then
-		warn "libtorrent $lib_ver is not supported"
+	local combo_key="${qb_ver}:${lib_ver}"
+	if [[ -z "${combo_sources[$combo_key]+_}" ]]; then
+		tput sgr0; clear
+		warn "$qb_ver is not compatible with $lib_ver"
+		warn "Available libtorrent versions for $qb_ver:"
+		_get_lib_for_qb "$qb_ver"
+		warn "Please choose a compatible version"
 		lib_ver_choose
-	fi
-	## Check if the libtorrent version is compatible with qBittorrent version
-	if [[ "${qb_ver}" =~ "4.1." ]]; then
-		while true
-		do
-			if [[ ! "${lib_ver}" == "libtorrent-1_1_14" ]]; then
-				tput sgr0; clear
-				warn "qBittorrent $qb_ver is not compatible with libtorrent $lib_ver"
-				warn "qBittorrent $qb_ver is compatible with libtorrent-1_1_x only"
-				warn "Please choose a compatible version"
-				lib_ver_choose
-			else
-				break
-			fi
-		done
-	elif [[ "${qb_ver}" =~ "4.2." ]]; then
-		while true
-		do
-			if [[ ! "${lib_ver}" =~ "libtorrent-v1.2." ]]; then
-				tput sgr0; clear
-				warn "qBittorrent $qb_ver is not compatible with libtorrent $lib_ver"
-				warn "qBittorrent $qb_ver is compatible with libtorrent-v1.2.x only"
-				warn "Please choose a compatible version"
-				lib_ver_choose
-			else
-				break
-			fi
-	done
-	elif [[ "${qb_ver}" =~ "4.3." ]]; then
-		while true
-		do
-			if [[ ! "${lib_ver}" =~ "libtorrent-v1.2." ]]; then
-				tput sgr0; clear
-				warn "qBittorrent $qb_ver is not compatible with libtorrent $lib_ver"
-				warn "qBittorrent $qb_ver is compatible with libtorrent-v1.2.x only"
-				warn "Please choose a compatible version"
-				lib_ver_choose
-			else
-				break
-			fi
-	done
-	elif [[ "${qb_ver}" =~ "4.4." ]]; then
-		while true
-		do
-			if [[ ! "${lib_ver}" =~ "libtorrent-v1.2." ]] && [[ ! "${lib_ver}" =~ "libtorrent-v2.0." ]]; then
-				tput sgr0; clear
-				warn "qBittorrent $qb_ver is not compatible with libtorrent $lib_ver";
-				warn "qBittorrent $qb_ver is compatible with libtorrent-v1.2.x or libtorrent-v2.0.x only";
-				warn "Please choose a compatible version";
-				lib_ver_choose
-			else
-				break
-			fi
-		done
-	elif [[ "${qb_ver}" =~ "4.5." ]]; then
-		while true
-		do
-			if [[ ! "${lib_ver}" =~ "libtorrent-v1.2." ]] && [[ ! "${lib_ver}" =~ "libtorrent-v2.0." ]]; then
-				tput sgr0; clear
-				warn "qBittorrent $qb_ver is not compatible with libtorrent $lib_ver"
-				warn "qBittorrent $qb_ver is compatible with libtorrent-v1.2.x or libtorrent-v2.0.x only"
-				warn "Please choose a compatible version"
-				lib_ver_choose
-			else
-				break
-			fi
-		done
-	elif [[ "${qb_ver}" =~ "4.6." ]]; then
-		while true
-		do
-			if [[ ! "${lib_ver}" =~ "libtorrent-v1.2." ]] && [[ ! "${lib_ver}" =~ "libtorrent-v2.0." ]]; then
-				tput sgr0; clear
-				warn "qBittorrent $qb_ver is not compatible with libtorrent $lib_ver"
-				warn "qBittorrent $qb_ver is compatible with libtorrent-v1.2.x or libtorrent-v2.0.x only"
-				warn "Please choose a compatible version"
-				lib_ver_choose
-			else
-				break
-			fi
-		done
-	elif [[ "${qb_ver}" =~ "5.0." ]]; then
-		while true
-		do
-			if [[ ! "${lib_ver}" =~ "libtorrent-v1.2." ]] && [[ ! "${lib_ver}" =~ "libtorrent-v2.0." ]]; then
-				tput sgr0; clear
-				warn "qBittorrent $qb_ver is not compatible with libtorrent $lib_ver"
-				warn "qBittorrent $qb_ver is compatible with libtorrent-v1.2.x or libtorrent-v2.0.x only"
-				warn "Please choose a compatible version"
-				lib_ver_choose
-			else
-				break
-			fi
-		done
-	elif [[ "${qb_ver}" =~ "5.1." ]]; then
-		while true
-		do
-			if [[ ! "${lib_ver}" =~ "libtorrent-v1.2." ]] && [[ ! "${lib_ver}" =~ "libtorrent-v2.0." ]]; then
-				tput sgr0; clear
-				warn "qBittorrent $qb_ver is not compatible with libtorrent $lib_ver"
-				warn "qBittorrent $qb_ver is compatible with libtorrent-v1.2.x or libtorrent-v2.0.x only"
-				warn "Please choose a compatible version"
-				lib_ver_choose
-			else
-				break
-			fi
-		done
 	fi
 }
 
 qb_install_check(){
-	# Check if qBittorrent version and libtorrent version are supported
-	## Check if the qBittorrent version is supported
-	if [[ ! " ${qb_name_list[@]} " =~ " ${qb_ver} " ]]; then
+	if [[ ! " ${qb_name_list[*]} " =~ " ${qb_ver} " ]]; then
 		warn "qBittorrent $qb_ver is not supported"
 		qb_ver_choose
 	fi
-	## Check if the libtorrent version is supported
-	if [[ ! " ${lib_name_list[@]} " =~ " ${lib_ver} " ]]; then
-		warn "libtorrent $lib_ver is not supported"
-		lib_ver_check
-	fi
-	## Check if the libtorrent version is compatible with qBittorrent version
 	lib_ver_check
 }
 
@@ -210,8 +210,8 @@ install_qBittorrent_(){
 		rm /usr/bin/qbittorrent-nox
 	fi
 
-	## Download qBittorrent-nox executable
-	# Determine the CPU architecture
+	## Determine the CPU architecture
+	local arch
 	if [[ $(uname -m) == "x86_64" ]]; then
 		arch="x86_64"
 	elif [[ $(uname -m) == "aarch64" ]]; then
@@ -220,12 +220,20 @@ install_qBittorrent_(){
 		warn "Unsupported CPU architecture"
 		return 1
 	fi
-	# Convert spaces in lib_ver to %20 to avoid wget download issues
-	safe_lib_ver="${lib_ver// /%20}"
-	wget "https://raw.githubusercontent.com/guowanghushifu/Seedbox-Components/main/Torrent%20Clients/qBittorrent/$arch/$qb_ver%20-%20${safe_lib_ver}/qbittorrent-nox" -O $HOME/qbittorrent-nox && chmod +x $HOME/qbittorrent-nox
-	#Check if the download is successful
-	if [ $? -ne 0 ]; then
-		warn "Failed to download qBittorrent-nox executable"
+
+	## Download qBittorrent-nox with repo fallback
+	local combo_key="${qb_ver}:${lib_ver}"
+	local repos="${combo_sources[$combo_key]}"
+	if [[ -z "$repos" ]]; then
+		warn "No source repository found for $qb_ver + $lib_ver"
+		return 1
+	fi
+	local safe_lib_ver="${lib_ver// /%20}"
+	local safe_qb_ver="${qb_ver// /%20}"
+	local url_path="${arch}/${safe_qb_ver}%20-%20${safe_lib_ver}/qbittorrent-nox"
+
+	if ! _download_with_fallback "$url_path" "$HOME/qbittorrent-nox" "$repos"; then
+		warn "Failed to download qBittorrent-nox executable from all repositories"
 		return 1
 	fi
 
@@ -319,12 +327,9 @@ WebUI\Password_ha1=@ByteArray($md5password)
 WebUI\Port=$qb_port
 WebUI\Username=$username
 EOF
-    elif [[ "${qb_ver}" =~ "4.2."|"4.3." ]]; then
-        wget  https://raw.githubusercontent.com/guowanghushifu/Seedbox-Components/main/Torrent%20Clients/qBittorrent/$arch/qb_password_gen -O $HOME/qb_password_gen && chmod +x $HOME/qb_password_gen
-        #Check if the download is successful
-		if [ $? -ne 0 ]; then
+    elif [[ "${qb_ver}" =~ "4.2." ]] || [[ "${qb_ver}" =~ "4.3." ]]; then
+        if ! _download_with_fallback "${arch}/qb_password_gen" "$HOME/qb_password_gen" "guowanghushifu jerry048"; then
 			warn "Failed to download qb_password_gen"
-			#Clean up
 			rm -r /home/$username/qbittorrent/Downloads
 			rm -r /home/$username/.config/qBittorrent
 			rm /usr/bin/qbittorrent-nox
@@ -355,13 +360,10 @@ WebUI\Password_PBKDF2="@ByteArray($PBKDF2password)"
 WebUI\Port=$qb_port
 WebUI\Username=$username
 EOF
-	rm qb_password_gen
-    elif [[ "${qb_ver}" =~ "4.4."|"4.5."|"4.6." ]]; then
-        wget  https://raw.githubusercontent.com/guowanghushifu/Seedbox-Components/main/Torrent%20Clients/qBittorrent/$arch/qb_password_gen -O $HOME/qb_password_gen && chmod +x $HOME/qb_password_gen
-        #Check if the download is successful
-		if [ $? -ne 0 ]; then
+	rm -f $HOME/qb_password_gen
+    elif [[ "${qb_ver}" =~ "4.4." ]] || [[ "${qb_ver}" =~ "4.5." ]] || [[ "${qb_ver}" =~ "4.6." ]]; then
+        if ! _download_with_fallback "${arch}/qb_password_gen" "$HOME/qb_password_gen" "guowanghushifu jerry048"; then
 			warn "Failed to download qb_password_gen"
-			#Clean up
 			rm -r /home/$username/qbittorrent/Downloads
 			rm -r /home/$username/.config/qBittorrent
 			rm /usr/bin/qbittorrent-nox
@@ -394,13 +396,10 @@ WebUI\Password_PBKDF2="@ByteArray($PBKDF2password)"
 WebUI\Port=$qb_port
 WebUI\Username=$username
 EOF
-    rm qb_password_gen
-    elif [[ "${qb_ver}" =~ "5.0."|"5.1." ]]; then
-        wget  https://raw.githubusercontent.com/guowanghushifu/Seedbox-Components/main/Torrent%20Clients/qBittorrent/$arch/qb_password_gen -O $HOME/qb_password_gen && chmod +x $HOME/qb_password_gen
-        #Check if the download is successful
-		if [ $? -ne 0 ]; then
+    rm -f $HOME/qb_password_gen
+    elif [[ "${qb_ver}" =~ "5.0." ]] || [[ "${qb_ver}" =~ "5.1." ]]; then
+        if ! _download_with_fallback "${arch}/qb_password_gen" "$HOME/qb_password_gen" "guowanghushifu jerry048"; then
 			warn "Failed to download qb_password_gen"
-			#Clean up
 			rm -r /home/$username/qbittorrent/Downloads
 			rm -r /home/$username/.config/qBittorrent
 			rm /usr/bin/qbittorrent-nox
@@ -434,7 +433,7 @@ WebUI\Password_PBKDF2="@ByteArray($PBKDF2password)"
 WebUI\Port=$qb_port
 WebUI\Username=$username
 EOF
-    rm qb_password_gen
+    rm -f $HOME/qb_password_gen
     fi
     systemctl start qbittorrent-nox@$username
 }
